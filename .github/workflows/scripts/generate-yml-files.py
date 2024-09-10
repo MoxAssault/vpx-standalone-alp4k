@@ -69,16 +69,22 @@ def parse_and_set_table_name(readme):
     match = re.search(table_name_pattern, readme, re.MULTILINE)
     if match:
       table_name = match.group(0).strip().lstrip('# ') 
-      return f"name: '{table_name.replace("'", "''")}'\n" 
+      table_name = table_name.replace("'", "''")
+      return f"name: '{table_name}'\n" 
     else:
       raise ValueError("Failed to read table name")
   except Exception as e:
     print(f"Error: {e}")
 
-def get_earliest_commit_owner(repo_path, folder_path):
+def get_earliest_commit_owner_from_xml(repo_path, folder_path):
   try:
     repo = Repo(repo_path)
-    commit_history = repo.git.log('--pretty=format:%ae', '--follow', '--', folder_path)
+    # Get XML files in dir
+    xml_files = repo.git.ls_files(folder_path + "/*.xml")
+    if not xml_files:
+      return f"tester: ?\n"
+    first_xml_file_path = xml_files.split()[0]
+    commit_history = repo.git.log('--pretty=format:%ae', '--follow', '--', first_xml_file_path)
     earliest_commit_owner = commit_history.splitlines()[-1]
     username, domain = earliest_commit_owner.split("@")
     parts = username.split("+")
@@ -187,7 +193,7 @@ def find_vpx_file_ids(urls, table_data):
           if debug_vpx_file_search:
             print(f"{bcolors.DEBUG}  DEBUG: VPXS URL Search")
             print(f"     -{clean_url(url)}")
-            print(f"     -{clean_url(file_url["url"])}{bcolors.ENDC}")
+            print(f"     -{clean_url(file_url['url'])}{bcolors.ENDC}")
           if clean_url(url) == clean_url(file_url["url"]):  # Case-insensitive comparison
             vpx_file_found = True
             vpx_file_id = table_file["id"]
@@ -217,12 +223,12 @@ def find_directb2s_file_ids(urls, table_data):
             if debug_b2s_file_search:
               print(f"{bcolors.DEBUG}   DEBUG: DirectB2S URL Search")
               print(f"     -{clean_url(url)}")
-              print(f"     -{clean_url(file_url["url"])}{bcolors.ENDC}")
+              print(f"     -{clean_url(file_url['url'])}{bcolors.ENDC}")
             if (clean_url(url)) == clean_url(file_url["url"]):
               b2s_file_found = True
               b2s_file_ids.append(b2s_file["id"])
               if debug_vpx_file_search:
-                print(f"{bcolors.OKGREEN}     -MATCH!{bcolors.DEBUG} directb2s id: {b2s_file["id"]}{bcolors.ENDC}")
+                print(f"{bcolors.OKGREEN}     -MATCH!{bcolors.DEBUG} directb2s id: {b2s_file['id']}{bcolors.ENDC}")
               break
             if debug_b2s_file_search:
               print(f"{bcolors.FAIL}     -NO MATCH!{bcolors.ENDC}")
@@ -287,7 +293,8 @@ def parse_download_links(readme):
 def process_READMEmd_file(entry, dir):
    # open a table-specific JSON file (eventually iterate)
   folder_path = os.path.dirname(entry.path)
-  with open(folder_path + '/' "README.md", "r", errors="ignore") as f:
+  folder_path = os.path.join(folder_path, "README.md")
+  with open(folder_path, "r", errors="ignore") as f:
   #readme = open(folder_path + '/' "README.md", "r", errors="replace")
     readme = f.read()
     print('     - README.md file data loaded')
@@ -298,7 +305,7 @@ def process_READMEmd_file(entry, dir):
     yml_text += parse_and_set_table_name(readme)
 
     # get tester from git history
-    yml_text += get_earliest_commit_owner(project_directory, folder_path)
+    yml_text += get_earliest_commit_owner_from_xml(project_directory, folder_path)
 
     # get FPS
     yml_text += get_FPS(readme)
@@ -308,7 +315,7 @@ def process_READMEmd_file(entry, dir):
     #write output .yml files to temp folder for now = we can put them in folders later using this...
       #yml = open(folder_path + '/' + entry.name +  '.yml', "w")
 
-    yml_file_path = project_directory + "/.github/workflows/temp_yml/" + dir +  '.yml'
+    yml_file_path = project_directory + "/.wizard/yaml" + dir +  '.yml'
     os.makedirs(os.path.dirname(yml_file_path), exist_ok=True)
     yml_file = open(yml_file_path, "w")
     yml_file.write(yml_text)

@@ -10,22 +10,28 @@ on:
    # - main  
     
 jobs:
-  generate-readme-files:
+  generate-yml-files:
   
     runs-on: ubuntu-latest
 
     steps:
     - name: Checkout Repository
       uses: actions/checkout@v3
+      with:
+        ref: wizard
 
     - name: Set up Python
       uses: actions/setup-python@v4
       with:
         python-version: '3.9'
 
-    - name: Install PyYAML
-      run: pip install pyyaml
-
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.9'
+        cache: 'pip'
+    - run: pip install -r .github/workflows/requirements.txt
+      
     - name: Run Python script
       run: python .github/workflows/scripts/generate-yml-files.py
 
@@ -35,7 +41,7 @@ jobs:
         git config user.email 'github-actions[bot]@users.noreply.github.com'
         git add .
         git commit -m "Updated Readme Files" || exit 0
-        git push origin ${{ github.head_ref || github.ref_name }} 
+        git push origin wizard 
     
     env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
